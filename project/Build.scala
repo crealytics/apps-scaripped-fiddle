@@ -49,7 +49,9 @@ object Build extends sbt.Build{
     .dependsOn(shared)
     .enablePlugins(ScalaJSPlugin)
     .settings(
+      resolvers += bintray.Opts.resolver.repo("crealytics", "maven"),
       libraryDependencies ++= Seq(
+        "de.crealytics" %%% "apps-scaripped-api" % "0.1.1",
         "org.scala-js" %%% "scalajs-dom" % "0.8.0",
         "com.lihaoyi" %%% "scalatags" % "0.4.5"
       ),
