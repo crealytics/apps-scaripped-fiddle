@@ -23,7 +23,7 @@ import scala.util.Properties
 object Server extends SimpleRoutingApp with Api{
   implicit val system = ActorSystem()
   import system.dispatcher
-  val clientFiles = Seq("/client-opt.js")
+  val clientFiles = Seq("client-opt.js")
 
   private object AutowireServer
       extends autowire.Server[String, upickle.Reader, upickle.Writer] {

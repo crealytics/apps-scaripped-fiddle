@@ -164,7 +164,7 @@ class Client(){
   def export(): Unit = task*async {
     logln("Exporting...")
     await(compile(Post[Api].fullOpt(editor.code).call())).foreach{ code =>
-      Util.Form.post("/export",
+      Util.Form.post("export",
         "source" -> editor.code,
         "compiled" -> code
       )
@@ -185,7 +185,7 @@ class Client(){
 
     val res = await(Ajax.post("https://api.github.com/gists", data = data))
     val result = JsVal.parse(res.responseText)
-    Util.Form.get("/gist/" + result("id").asString)
+    Util.Form.get("gist/" + result("id").asString)
   }
 }
 

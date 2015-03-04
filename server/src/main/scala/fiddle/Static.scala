@@ -4,11 +4,11 @@ import scalatags.Text.all._
 import scalatags.Text.tags2
 object Static{
   val aceFiles = Seq(
-    "/META-INF/resources/webjars/ace/01.08.2014/src-min/ace.js",
-    "/META-INF/resources/webjars/ace/01.08.2014/src-min/ext-language_tools.js",
-    "/META-INF/resources/webjars/ace/01.08.2014/src-min/ext-static_highlight.js",
-    "/META-INF/resources/webjars/ace/01.08.2014/src-min/mode-scala.js",
-    "/META-INF/resources/webjars/ace/01.08.2014/src-min/theme-twilight.js"
+    "META-INF/resources/webjars/ace/01.08.2014/src-min/ace.js",
+    "META-INF/resources/webjars/ace/01.08.2014/src-min/ext-language_tools.js",
+    "META-INF/resources/webjars/ace/01.08.2014/src-min/ext-static_highlight.js",
+    "META-INF/resources/webjars/ace/01.08.2014/src-min/mode-scala.js",
+    "META-INF/resources/webjars/ace/01.08.2014/src-min/theme-twilight.js"
   )
 
   def page(arg: String, srcFiles: Seq[String], source: String = "", compiled: String = "", analytics: Boolean = true) =
@@ -20,8 +20,8 @@ object Static{
         for(srcFile <- srcFiles ++ aceFiles) yield script(
           `type`:="text/javascript", src:=srcFile
         ),
-        link(rel:="stylesheet", href:="/META-INF/resources/webjars/normalize.css/2.1.3/normalize.css"),
-        link(rel:="stylesheet", href:="/styles.css"),
+        link(rel:="stylesheet", href:="META-INF/resources/webjars/normalize.css/2.1.3/normalize.css"),
+        link(rel:="stylesheet", href:="styles.css"),
 
         if (analytics) script(raw(
           """
@@ -53,11 +53,11 @@ object Static{
                 div(style:="text-align: center")(
                   h1("Loading Scala-Js-Fiddle"),
                   div(
-                    img(src:="/Shield.svg", height:="200px")
+                    img(src:="Shield.svg", height:="200px")
                   ),
                   br,
                   div(
-                    img(src:="/spinner.gif")
+                    img(src:="spinner.gif")
                   ),
                   p("This takes a while the first time. Please be patient =)")
                 )
