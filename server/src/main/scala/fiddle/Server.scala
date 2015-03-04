@@ -86,13 +86,21 @@ object Server extends SimpleRoutingApp with Api{
                 }
               }
             }
+          } ~
+          get {
+            path("compiled" / Segments){ s =>
+              val source = scala.io.Source.fromFile(s.mkString("/"))
+              val lines = source.mkString
+              source.close()
+              complete(lines)
+            }
           }
         }
       }
     }
   }
-  def fastOpt(txt: String) = compileStuff(txt, _ |> Compiler.fastOpt |> Compiler.export)
-  def fullOpt(txt: String) = compileStuff(txt, _ |> Compiler.fullOpt |> Compiler.export)
+  def fastOpt(txt: String) = compileStuff(txt, _ |> Compiler.fastOpt |> Compiler.export) |> persistCode
+  def fullOpt(txt: String) = compileStuff(txt, _ |> Compiler.fullOpt |> Compiler.export) |> persistCode
   def export(compiled: String, source: String) = {
     renderCode(compiled, Nil, source, "Page().exportMain(); ScalaJSExample().main();", analytics = false)
   }
@@ -117,5 +125,10 @@ object Server extends SimpleRoutingApp with Api{
     )
 
     (output.mkString, res.map(processor))
+  }
+
+  def persistCode(codeAndStuff: (String, Option[String])): (String, Option[String]) = {
+    codeAndStuff._2.foreach(c => scala.tools.nsc.io.File(s"${Shared.gistId}.js").writeAll(c))
+    codeAndStuff
   }
 }
