@@ -22,7 +22,7 @@ object Shared{
     |}
   """.stripMargin
 
-  val gistId = "9443f8e0ecc68d1058ad"
+  val gistId = "1d32e23cacb79abc2ec5"
 
   val url = "."
 //  val url = "http://localhost:8080"
