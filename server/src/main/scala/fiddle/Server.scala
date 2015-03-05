@@ -72,30 +72,35 @@ object Server extends SimpleRoutingApp with Api{
                   )
                 )
               }
-            } ~
-            path("gist" / Segments){ i =>
+            }
+          } ~
+          path("gist" / Segments /){ i =>
+            get {
               complete{
                 HttpEntity(
                   MediaTypes.`text/html`,
                   Static.page(
                     s"Client().gistMain(${write(i)})",
                     clientFiles,
-                    "Loading gist..."
+                    "Loading gist...",
+                    relativePathToAssets = "../.."
                   )
                 )
               }
-            } ~
-            getFromResourceDirectory("")
+            }
           } ~
+          path("gist" / Segments){ segments =>
+            post {
+              segments match {
+                case gid :: "api" :: s => respondToApiCall(s)
+                case _ => complete("FAIL")
+              }
+            }
+          } ~
+          getFromResourceDirectory("") ~
           post {
             path("api" / Segments){ s =>
-              extract(_.request.entity.asString) { e =>
-                complete {
-                  AutowireServer.routes(
-                    autowire.Core.Request(s, upickle.read[Map[String, String]](e))
-                  )
-                }
-              }
+              respondToApiCall(s)
             }
           } ~
           get {
@@ -127,6 +132,16 @@ object Server extends SimpleRoutingApp with Api{
             }
           }
         }
+      }
+    }
+  }
+
+  def respondToApiCall(s: List[String]) = {
+    extract(_.request.entity.asString) { e =>
+      complete {
+        AutowireServer.routes(
+          autowire.Core.Request(s, upickle.read[Map[String, String]](e))
+        )
       }
     }
   }

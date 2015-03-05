@@ -11,17 +11,17 @@ object Static{
     "META-INF/resources/webjars/ace/01.08.2014/src-min/theme-twilight.js"
   )
 
-  def page(arg: String, srcFiles: Seq[String], source: String = "", compiled: String = "", analytics: Boolean = true) =
+  def page(arg: String, srcFiles: Seq[String], source: String = "", compiled: String = "", analytics: Boolean = true, relativePathToAssets: String = ".") =
     "<!DOCTYPE html>" + html(
       head(
         meta(charset:="utf-8"),
         tags2.title("Scala-Js-Fiddle"),
 
         for(srcFile <- srcFiles ++ aceFiles) yield script(
-          `type`:="text/javascript", src:=srcFile
+          `type`:="text/javascript", src:=s"$relativePathToAssets/$srcFile"
         ),
-        link(rel:="stylesheet", href:="META-INF/resources/webjars/normalize.css/2.1.3/normalize.css"),
-        link(rel:="stylesheet", href:="styles.css"),
+        link(rel:="stylesheet", href:=s"$relativePathToAssets/META-INF/resources/webjars/normalize.css/2.1.3/normalize.css"),
+        link(rel:="stylesheet", href:=s"$relativePathToAssets/styles.css"),
 
         if (analytics) script(raw(
           """
@@ -53,11 +53,11 @@ object Static{
                 div(style:="text-align: center")(
                   h1("Loading Scala-Js-Fiddle"),
                   div(
-                    img(src:="Shield.svg", height:="200px")
+                    img(src:=s"$relativePathToAssets/Shield.svg", height:="200px")
                   ),
                   br,
                   div(
-                    img(src:="spinner.gif")
+                    img(src:=s"$relativePathToAssets/spinner.gif")
                   ),
                   p("This takes a while the first time. Please be patient =)")
                 )
