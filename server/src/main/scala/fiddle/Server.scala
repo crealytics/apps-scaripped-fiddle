@@ -19,6 +19,17 @@ import scala.annotation.{ClassfileAnnotation, StaticAnnotation, Annotation}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Properties
+import scala.concurrent.Future
+
+import akka.util.Timeout
+import akka.pattern.ask
+import akka.io.IO
+
+import spray.can.Http
+import spray.http._
+import spray.http.StatusCodes._
+import HttpMethods._
+import java.security.MessageDigest
 
 object Server extends SimpleRoutingApp with Api{
   implicit val system = ActorSystem()
@@ -89,18 +100,42 @@ object Server extends SimpleRoutingApp with Api{
           } ~
           get {
             path("compiled" / Segments){ s =>
-              val source = scala.io.Source.fromFile(s.mkString("/"))
-              val lines = source.mkString
-              source.close()
-              complete(lines)
+              val path = s.mkString("/")
+              implicit val timeout: Timeout = Timeout(15.seconds)
+              val response: Future[HttpResponse] =
+                (IO(Http) ? Get(s"https://api.github.com/gists/${s.mkString("/")}")).mapTo[HttpResponse]
+              onSuccess(response) { resp =>
+                val gist = read[Gist](resp.entity.asString)
+                val scalaCode = gist.files.head._2.content
+                val theMd5 = md5(scalaCode)
+                val fileName = s"${path}_$theMd5.js"
+                if (new java.io.File(fileName).exists) {
+                  val source = scala.io.Source.fromFile(fileName)
+                  val jsCode = source.mkString
+                  source.close()
+                  complete(jsCode)
+                } else {
+                  fastOpt(scalaCode) match {
+                    case (_, Some(jsCode)) =>
+                      persistCode(jsCode, fileName)
+                      complete(jsCode)
+                    case _ =>
+                      complete(InternalServerError, "Could not compile to JS")
+                  }
+                }
+              }
             }
           }
         }
       }
     }
   }
-  def fastOpt(txt: String) = compileStuff(txt, _ |> Compiler.fastOpt |> Compiler.export) |> persistCode
-  def fullOpt(txt: String) = compileStuff(txt, _ |> Compiler.fullOpt |> Compiler.export) |> persistCode
+
+  case class GistFile(content: String)
+  case class Gist(files: Map[String, GistFile])
+
+  def fastOpt(txt: String) = compileStuff(txt, _ |> Compiler.fastOpt |> Compiler.export)
+  def fullOpt(txt: String) = compileStuff(txt, _ |> Compiler.fullOpt |> Compiler.export)
   def export(compiled: String, source: String) = {
     renderCode(compiled, Nil, source, "Page().exportMain(); ScalaJSExample().main();", analytics = false)
   }
@@ -127,8 +162,11 @@ object Server extends SimpleRoutingApp with Api{
     (output.mkString, res.map(processor))
   }
 
-  def persistCode(codeAndStuff: (String, Option[String])): (String, Option[String]) = {
-    codeAndStuff._2.foreach(c => scala.tools.nsc.io.File(s"${Shared.gistId}.js").writeAll(c))
-    codeAndStuff
+  def md5(s: String) = {
+    MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02X".format(_)).mkString
+  }
+
+  def persistCode(code: String, fileName: String): Unit = {
+    scala.tools.nsc.io.File(fileName).writeAll(code)
   }
 }
