@@ -11,7 +11,7 @@ object Static{
     "META-INF/resources/webjars/ace/01.08.2014/src-min/theme-twilight.js"
   )
 
-  def page(arg: String, srcFiles: Seq[String], source: String = "", compiled: String = "", analytics: Boolean = true, relativePathToAssets: String = ".") =
+  def page(arg: String, srcFiles: Seq[String], source: String = "", compiled: String = "", analytics: Boolean = false, relativePathToAssets: String = ".") =
     "<!DOCTYPE html>" + html(
       head(
         meta(charset:="utf-8"),
