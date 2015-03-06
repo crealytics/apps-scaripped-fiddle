@@ -95,6 +95,12 @@ object Server extends SimpleRoutingApp with Api{
                 case gid :: "api" :: s => respondToApiCall(s)
                 case _ => complete("FAIL")
               }
+            } ~
+            get {
+              segments match {
+                case gid :: "compiled" :: Nil => loadCompileComplete(Seq(gid))
+                case _ => complete("Don't know what you want :p")
+              }
             }
           } ~
           getFromResourceDirectory("") ~
@@ -105,30 +111,7 @@ object Server extends SimpleRoutingApp with Api{
           } ~
           get {
             path("compiled" / Segments){ s =>
-              val path = s.mkString("/")
-              implicit val timeout: Timeout = Timeout(15.seconds)
-              val response: Future[HttpResponse] =
-                (IO(Http) ? Get(s"https://api.github.com/gists/${s.mkString("/")}")).mapTo[HttpResponse]
-              onSuccess(response) { resp =>
-                val gist = read[Gist](resp.entity.asString)
-                val scalaCode = gist.files.head._2.content
-                val theMd5 = md5(scalaCode)
-                val fileName = s"${path}_$theMd5.js"
-                if (new java.io.File(fileName).exists) {
-                  val source = scala.io.Source.fromFile(fileName)
-                  val jsCode = source.mkString
-                  source.close()
-                  complete(jsCode)
-                } else {
-                  fastOpt(scalaCode) match {
-                    case (_, Some(jsCode)) =>
-                      persistCode(jsCode, fileName)
-                      complete(jsCode)
-                    case _ =>
-                      complete(InternalServerError, "Could not compile to JS")
-                  }
-                }
-              }
+              loadCompileComplete(s)
             }
           }
         }
@@ -142,6 +125,34 @@ object Server extends SimpleRoutingApp with Api{
         AutowireServer.routes(
           autowire.Core.Request(s, upickle.read[Map[String, String]](e))
         )
+      }
+    }
+  }
+
+  def loadCompileComplete(s: Seq[String]) = {
+    val path = s.mkString("/")
+    implicit val timeout: Timeout = Timeout(15.seconds)
+    val gistUrl = s"https://api.github.com/gists/$path"
+    val response: Future[HttpResponse] =
+      (IO(Http) ? Get(gistUrl)).mapTo[HttpResponse]
+    onSuccess(response) { resp =>
+      val gist = read[Gist](resp.entity.asString)
+      val scalaCode = gist.files.head._2.content
+      val theMd5 = md5(scalaCode)
+      val fileName = s"${path}_$theMd5.js"
+      if (new java.io.File(fileName).exists) {
+        val source = scala.io.Source.fromFile(fileName)
+        val jsCode = source.mkString
+        source.close()
+        complete(jsCode)
+      } else {
+        fastOpt(scalaCode) match {
+          case (_, Some(jsCode)) =>
+            persistCode(jsCode, fileName)
+            complete(jsCode)
+          case (error, None) =>
+            complete(InternalServerError, s"Could not compile to JS:\n$error")
+        }
       }
     }
   }
