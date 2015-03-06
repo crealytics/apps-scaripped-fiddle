@@ -66,7 +66,7 @@ object Server extends SimpleRoutingApp with Api{
                 HttpEntity(
                   MediaTypes.`text/html`,
                   Static.page(
-                    s"Client().gistMain([])",
+                    s"Client().gistMain('.', [])",
                     clientFiles,
                     "Loading gist..."
                   )
@@ -80,7 +80,7 @@ object Server extends SimpleRoutingApp with Api{
                 HttpEntity(
                   MediaTypes.`text/html`,
                   Static.page(
-                    s"Client().gistMain(${write(i)})",
+                    s"Client().gistMain('../..', ${write(i)})",
                     clientFiles,
                     "Loading gist...",
                     relativePathToAssets = "../.."

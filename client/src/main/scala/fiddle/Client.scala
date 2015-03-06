@@ -67,7 +67,7 @@ object Post extends autowire.Client[String, upickle.Reader, upickle.Writer]{
   def write[Result: upickle.Writer](r: Result) = upickle.write(r)
 }
 
-class Client(){
+class Client(pathToBase: String = "."){
 
   Client.scheduleResets()
   val command = Channel[Future[(String, Option[String])]]()
@@ -185,7 +185,7 @@ class Client(){
 
     val res = await(Ajax.post("https://api.github.com/gists", data = data))
     val result = JsVal.parse(res.responseText)
-    Util.Form.get("gist/" + result("id").asString)
+    Util.Form.get(s"$pathToBase/gist/${result("id").asString}/")
   }
 }
 
@@ -217,7 +217,7 @@ object Client{
   }
 
   @JSExport
-  def gistMain(args: js.Array[String]): Unit = task*async{
+  def gistMain(pathToBase: String, args: js.Array[String]): Unit = task*async{
     dom.console.log("gistMain")
     Editor.initEditor
     val (gistId, fileName) = args.toSeq match{
@@ -227,7 +227,7 @@ object Client{
     }
 
     val src = await(load(gistId, fileName))
-    val client = new Client()
+    val client = new Client(pathToBase)
     client.editor.sess.setValue(src)
 
     client.command.update(Post[Api].fullOpt(src).call())
