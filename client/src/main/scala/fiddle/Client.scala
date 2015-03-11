@@ -67,7 +67,7 @@ object Post extends autowire.Client[String, upickle.Reader, upickle.Writer]{
   def write[Result: upickle.Writer](r: Result) = upickle.write(r)
 }
 
-class Client(pathToBase: String = "."){
+class Client(gistId: String, pathToBase: String = "."){
 
   Client.scheduleResets()
   val command = Channel[Future[(String, Option[String])]]()
@@ -78,8 +78,15 @@ class Client(pathToBase: String = "."){
 
     Checker.reset(1000)
     try{
-      js.eval(s)
-      js.eval("ScalaJSExample().main()")
+      val snippet = s"""
+// Copy and paste the following snippet into the AdWords script code input box
+function main() {
+  var url = "https://experimental.camato.eu/apps-scaripped/gist/$gistId/compiled";
+  eval(UrlFetchApp.fetch(url).getContentText());
+  ScalaJSExample().main();
+}
+      """
+      showJavascript(Future(("", Some(snippet))))
 
     }catch{case e: Throwable =>
       Client.logError(e.getStackTraceString)
@@ -227,7 +234,7 @@ object Client{
     }
 
     val src = await(load(gistId, fileName))
-    val client = new Client(pathToBase)
+    val client = new Client(gistId, pathToBase)
     client.editor.sess.setValue(src)
 
     client.command.update(Post[Api].fullOpt(src).call())
@@ -236,7 +243,7 @@ object Client{
   @JSExport
   def importMain(): Unit = {
     clear()
-    val client = new Client()
+    val client = new Client(fiddle.Shared.gistId)
   }
 
   def load(gistId: String, file: Option[String]): Future[String] = {
