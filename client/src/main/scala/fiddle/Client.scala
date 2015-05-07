@@ -68,7 +68,7 @@ object Post extends autowire.Client[String, upickle.Reader, upickle.Writer]{
 }
 
 class Client(gistId: String, pathToBase: String = "."){
-
+  import Client._
   Client.scheduleResets()
   val command = Channel[Future[(String, Option[String])]]()
 
@@ -84,8 +84,7 @@ function main() {
   var url = "https://experimental.camato.eu/apps-scaripped/gist/$gistId/compiled";
   eval(UrlFetchApp.fetch(url).getContentText());
   ScalaJSExample().main();
-}
-      """
+}"""
       showJavascript(Future(("", Some(snippet))))
 
     }catch{case e: Throwable =>
@@ -110,7 +109,7 @@ function main() {
   val editor: Editor = new Editor(Seq(
     ("Compile", "Enter", () => command.update(Post[Api].fastOpt(editor.code).call())),
     ("FullOptimize", "Shift-Enter", () => command.update(Post[Api].fullOpt(editor.code).call())),
-    ("Save", "S", save _),
+    ("Save", "S", () => save(2)),
     ("Complete", "Space", () => editor.complete()),
     ("FastOptimizeJavascript", "J", () => showJavascript(Post[Api].fastOpt(editor.code).call())),
     ("FullOptimizedJavascript", "Shift-J", () => showJavascript(Post[Api].fullOpt(editor.code).call())),
@@ -178,26 +177,66 @@ function main() {
     }
   }
 
-  def save(): Unit = task*async{
-    await(compile(Post[Api].fullOpt(editor.code).call()))
-    val data = JsVal.obj(
-      "description" -> "Scala.jsFiddle gist",
-      "public" -> true,
-      "files" -> JsVal.obj(
-        "Main.scala" -> JsVal.obj(
-          "content" -> editor.code
+  def save(retries: Int = 2): Unit = {
+    import Shared.tokenCookieName
+    val asyncRequest = async{
+      //await(compile(Post[Api].fullOpt(editor.code).call()))
+      val data = JsVal.obj(
+        "description" -> "Scala.jsFiddle gist",
+        "public" -> false,
+        "files" -> JsVal.obj(
+          "Main.scala" -> JsVal.obj(
+            "content" -> editor.code
+          )
         )
-      )
-    ).toString()
-
-    val res = await(Ajax.post("https://api.github.com/gists", data = data))
-    val result = JsVal.parse(res.responseText)
-    Util.Form.get(s"$pathToBase/gist/${result("id").asString}/")
+      ).toString()
+      val requestOption = try {
+        dom.console.log(s"Checking if we need to get Github auth token ${dom.document.cookie}")
+        dom.console.log(cookies.toString)
+        dom.console.log(parameters.toString)
+        if(!cookies.contains(tokenCookieName) && !parameters.contains(tokenCookieName)) {
+          val callbackUrl = dom.location.href.replaceAll("/gist/[^/?]+/?", "/oauth_callback")
+          val githubAuthUrl = s"https://github.com/login/oauth/authorize?client_id=${Shared.githubClientId}&scope=gist&redirect_uri=${js.URIUtils.encodeURIComponent(callbackUrl)}"
+          dom.console.log(s"Redirecting to Github for OAuth $githubAuthUrl")
+          dom.open(githubAuthUrl, "_blank")
+        } else if (parameters.contains(tokenCookieName)) {
+          val token = parameters(tokenCookieName)
+          dom.console.log(s"Got the token in the URL ($token), trying to set it")
+          setCookie(tokenCookieName, token)
+        }
+        cookies.get(tokenCookieName).map { token =>
+          val request = Ajax.apply("PATCH", s"https://api.github.com/gists/$gistId", data = data,
+            timeout = 0,
+            headers = Client.githubAuthHeaders,
+            withCredentials = false,
+            responseType = "")
+          Some(request)
+        }.getOrElse {
+          dom.alert("You need to provide Gist write access in the popup that just should have opened (check for popup blockers)\nAfter that, please try saving again")
+          None
+        }
+      } catch {
+        case e: Throwable =>
+          dom.console.log(s"Updating Gist $gistId failed\n$e\nPosting")
+          None
+      }
+      requestOption match {
+        case Some(request) => await(request)
+        case _ => ;
+      }
+    }
+    asyncRequest.map(_ => ()).recover{ case e =>
+      dom.console.log(e.toString)
+      e.printStackTrace()
+      dom.console.log(s"Deleting cookie and retrying ${retries - 1} times")
+      deleteCookie(tokenCookieName)
+      if (retries > 0) save(retries - 1)
+    }
   }
 }
 
 @JSExport("Client")
-object Client{
+object Client {
   implicit val RedLogger = new Logger(logError)
 
   dom.onerror = {(event: dom.Event, source: String, fileno: Int, columnNumber: Int) =>
@@ -246,6 +285,41 @@ object Client{
     val client = new Client(fiddle.Shared.gistId)
   }
 
+  def parameters: Map[String, String] = {
+    val clean: String => String = { s => js.URIUtils.decodeURIComponent(s.trim) }
+    val queryString = dom.location.search.substring(1)
+    queryString.split("&").flatMap { keyValueString =>
+      """([^=]+)(=(.*))?$""".r.findFirstMatchIn(keyValueString).map(m =>(m group 1, m group 3)) match {
+        case Some((key, null)) => Some((clean(key), ""))
+        case Some((key, value)) => Some((clean(key), clean(value)))
+        case None => None
+      }
+    }.toMap
+  }
+
+  def cookies: Map[String, String] = {
+    dom.document.cookie.split(";").map { keyValueString =>
+      """([^=]+)(=(.*))?$""".r.findFirstMatchIn(keyValueString).map(m =>(m group 1, m group 3)).get match {
+        case (key, null) => (key.trim, "")
+        case (key, value) => (key.trim, value.trim)
+      }
+    }.toMap
+  }
+
+  def setCookie(key: String, value: String): Unit = {
+    dom.document.cookie = s"$key=$value"
+  }
+
+  def deleteCookie(key: String): Unit = {
+    dom.document.cookie = s"$key=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+  }
+
+  def githubAuthHeaders: Map[String, String] = {
+    cookies.get(Shared.tokenCookieName).map { token =>
+      Map("Authorization" -> s"token $token")
+    }.getOrElse(Map.empty)
+  }
+
   def load(gistId: String, file: Option[String]): Future[String] = {
     val gistUrl = "https://gist.github.com/" + gistId
     logln(
@@ -257,7 +331,7 @@ object Client{
       a(href := gistUrl)(gistUrl),
       "..."
     )
-    Ajax.get("https://api.github.com/gists/" + gistId).map{ res =>
+    Ajax.get("https://api.github.com/gists/" + gistId, headers = githubAuthHeaders).map{ res =>
       val result = JsVal.parse(res.responseText)
       val mainFile = result("files").get(file.getOrElse(""))
       val firstFile = result("files").values(0)

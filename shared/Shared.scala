@@ -23,7 +23,8 @@ object Shared{
   """.stripMargin
 
   val gistId = "1d32e23cacb79abc2ec5"
-
+  val githubClientId = "6dd4bf6f1dcd622ddfc3"
+  val tokenCookieName = "github_token"
   val url = "."
 //  val url = "http://localhost:8080"
 }

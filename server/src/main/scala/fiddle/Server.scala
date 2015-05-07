@@ -8,6 +8,8 @@ import akka.actor.ActorSystem
 import spray.routing.directives.CacheKeyer
 import scala.collection.mutable
 import spray.client.pipelining._
+import spray.json._
+import DefaultJsonProtocol._
 
 import spray.http.HttpRequest
 import scala.Some
@@ -31,7 +33,7 @@ import spray.http.StatusCodes._
 import HttpMethods._
 import java.security.MessageDigest
 
-object Server extends SimpleRoutingApp with Api{
+object Server extends SimpleRoutingApp with Api {
   implicit val system = ActorSystem()
   import system.dispatcher
   val clientFiles = Seq("client-opt.js")
@@ -44,11 +46,14 @@ object Server extends SimpleRoutingApp with Api{
     val routes = AutowireServer.route[Api](Server)
   }
 
+  case class GithubAuthorization(access_token: String, scope: String, token_type: String)
+  implicit val githubAuthorizationFormat = jsonFormat3(GithubAuthorization)
+
   def main(args: Array[String]): Unit = {
     implicit val Default: CacheKeyer = CacheKeyer {
       case RequestContext(HttpRequest(_, uri, _, entity, _), _, _) => (uri, entity)
     }
-
+    import Shared.tokenCookieName
     val simpleCache = routeCache()
 //    println("Power On Self Test")
 //    val res = Compiler.compile(fiddle.Shared.default.getBytes, println)
@@ -72,11 +77,31 @@ object Server extends SimpleRoutingApp with Api{
                   )
                 )
               }
+            } ~
+            path("oauth_callback") {
+              get {
+                parameters("code") { code =>
+                  val accessTokenFuture = getGithubAccessToken(code)
+                  onSuccess(accessTokenFuture) { auth =>
+                    println(s"Authorization seems to have worked: $auth\nNow setting cookie")
+                    setCookie(HttpCookie(tokenCookieName, auth.access_token)) {
+                      complete {
+                        import scalatags.Text.all._
+                        import scalatags.Text.tags2
+                        HttpEntity(
+                          MediaTypes.`text/html`,
+                          Static.autoClosingPage
+                        )
+                      }
+                    }
+                  }
+                }
+              }
             }
           } ~
-          path("gist" / Segments /){ i =>
+          path("gist" / Segments /) { i =>
             get {
-              complete{
+              complete {
                 HttpEntity(
                   MediaTypes.`text/html`,
                   Static.page(
@@ -126,6 +151,33 @@ object Server extends SimpleRoutingApp with Api{
           autowire.Core.Request(s, upickle.read[Map[String, String]](e))
         )
       }
+    }
+  }
+
+  def getGithubAccessToken(code: String): Future[GithubAuthorization] = {
+    import spray.httpx.SprayJsonSupport._
+    import spray.json.DefaultJsonProtocol._
+    import spray.httpx.TransformerAux._
+    val clientSecret = sys.env("GITHUB_CLIENT_SECRET")
+    implicit val timeout: Timeout = Timeout(15.seconds)
+    val authUrl = "https://github.com/login/oauth/access_token"
+    val pipeline: HttpRequest => Future[HttpResponse] =
+      addHeader("Accept", "application/json") ~> sendReceive
+    val response: Future[HttpResponse] =
+      pipeline(Post(authUrl,
+        Map(
+          "client_id" -> Shared.githubClientId,
+          "client_secret" -> clientSecret,
+          "code" -> code,
+          "redirect_uri" -> ""
+        )
+      ))
+    response.map { resp =>
+      val body = resp.entity.asString
+      println(s"Got response $resp with body\n${body}")
+      val auth = body.parseJson.convertTo[GithubAuthorization]
+      println(s"All good, we got $auth")
+      auth
     }
   }
 

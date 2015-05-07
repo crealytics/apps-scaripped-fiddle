@@ -72,4 +72,17 @@ object Static{
       ),
       script(raw(arg))
     ).toString()
+  def autoClosingPage = "<!DOCTYPE html>" + html(
+    head(
+      meta(charset:="utf-8"),
+      tags2.title("Finishing Github Authorization"),
+      script(raw(
+        """
+          (function(w){ w.close(); })(window);
+        """
+      ))
+    ),
+    body()
+  )
+
 }
