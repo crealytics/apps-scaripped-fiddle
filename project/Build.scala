@@ -10,7 +10,7 @@ import com.heroku.sbt.HerokuPlugin.autoImport._
 import spray.revolver.RevolverPlugin._
 
 object Build extends sbt.Build{
-
+  val theScalaVersion = "2.11.6"
   lazy val root = project.in(file("."))
     .aggregate(client, page, server, runtime)
     .settings(
@@ -22,10 +22,10 @@ object Build extends sbt.Build{
           (fullOptJS in (client, Compile)).value.data
         )
       },
-      scalaVersion := "2.11.5"
+      scalaVersion := theScalaVersion
     )
   lazy val shared = project.in(file("shared")).enablePlugins(ScalaJSPlugin)
-                           .settings(scalaVersion := "2.11.5")
+                           .settings(scalaVersion := theScalaVersion)
 
   lazy val client = project
     .dependsOn(page, shared)
@@ -43,7 +43,7 @@ object Build extends sbt.Build{
       relativeSourceMaps := true,
       addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.2"),
       autoCompilerPlugins := true,
-      scalaVersion := "2.11.5"
+      scalaVersion := theScalaVersion
     )
   lazy val page = project
     .dependsOn(shared)
