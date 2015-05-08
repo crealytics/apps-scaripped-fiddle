@@ -110,6 +110,7 @@ function main() {
     ("Compile", "Enter", () => command.update(Post[Api].fastOpt(editor.code).call())),
     ("FullOptimize", "Shift-Enter", () => command.update(Post[Api].fullOpt(editor.code).call())),
     ("Save", "S", () => save(2)),
+    ("Use a fork", "U", fork),
     ("Complete", "Space", () => editor.complete()),
     ("FastOptimizeJavascript", "J", () => showJavascript(Post[Api].fastOpt(editor.code).call())),
     ("FullOptimizedJavascript", "Shift-J", () => showJavascript(Post[Api].fullOpt(editor.code).call())),
@@ -177,6 +178,20 @@ function main() {
     }
   }
 
+  def fork(): Unit = task*async{
+    val data = JsVal.obj(
+      "description" -> "Scala.jsFiddle gist",
+      "public" -> true,
+      "files" -> JsVal.obj(
+        "Main.scala" -> JsVal.obj(
+          "content" -> editor.code
+        )
+      )
+    ).toString()
+    val res = await(Ajax.post("https://api.github.com/gists", data = data))
+    val result = JsVal.parse(res.responseText)
+    Util.Form.get(s"$pathToBase/gist/${result("id").asString}/")
+  }
   def save(retries: Int = 2): Unit = {
     import Shared.tokenCookieName
     val asyncRequest = async{
