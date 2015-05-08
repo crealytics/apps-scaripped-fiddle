@@ -69,7 +69,7 @@ object Editor{
   def initEditorIn(id: String) = {
     val editor = global.ace.edit(id)
     editor.setTheme("ace/theme/twilight")
-    editor.renderer.setShowGutter(false)
+    editor.renderer.setShowGutter(true)
     editor.setShowPrintMargin(false)
     editor
   }
