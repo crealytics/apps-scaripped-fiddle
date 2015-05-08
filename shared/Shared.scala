@@ -26,6 +26,7 @@ object Shared{
   val githubClientId = "6dd4bf6f1dcd622ddfc3"
   val tokenCookieName = "github_token"
   val url = "."
+  val mainClassName = "AppsScarippedMain"
 //  val url = "http://localhost:8080"
 }
 

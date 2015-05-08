@@ -83,7 +83,7 @@ class Client(gistId: String, pathToBase: String = "."){
 function main() {
   var url = "https://experimental.camato.eu/apps-scaripped/gist/$gistId/compiled";
   eval(UrlFetchApp.fetch(url).getContentText());
-  AppsScarippedMain().main();
+  ${Shared.mainClassName}().main();
 }"""
       showJavascript(Future(("", Some(snippet))))
 
@@ -118,7 +118,7 @@ function main() {
   ), complete, RedLogger)
 
   logln("- ", yellow("Cmd/Ctrl-Enter"), " to compile & execute, ", yellow("Cmd/Ctrl-Space"), " for autocomplete.")
-  val landing = fiddle.Shared.url + "/gist/" + fiddle.Shared.gistId + "/LandingPage.scala"
+  val landing = fiddle.Shared.url + "/gist/" + fiddle.Shared.gistId + s"/${Shared.mainClassName}.scala"
   logln("- ", a(href:=landing, "Click here"), " to find out more.")
 
   def compile(res: Future[(String, Option[String])]): Future[Option[String]] = {
@@ -178,33 +178,24 @@ function main() {
     }
   }
 
-  def fork(): Unit = task*async{
-    val data = JsVal.obj(
-      "description" -> "Scala.jsFiddle gist",
-      "public" -> true,
-      "files" -> JsVal.obj(
-        "Main.scala" -> JsVal.obj(
-          "content" -> editor.code
-        )
+  def gistContent = JsVal.obj(
+    "description" -> "Scala.jsFiddle gist",
+    "public" -> true,
+    "files" -> JsVal.obj(
+      s"${Shared.mainClassName}.scala" -> JsVal.obj(
+        "content" -> editor.code
       )
-    ).toString()
-    val res = await(Ajax.post("https://api.github.com/gists", data = data))
+    )
+  ).toString()
+
+  def fork(): Unit = task*async{
+    val res = await(Ajax.post("https://api.github.com/gists", data = gistContent))
     val result = JsVal.parse(res.responseText)
     Util.Form.get(s"$pathToBase/gist/${result("id").asString}/")
   }
   def save(retries: Int = 2): Unit = {
     import Shared.tokenCookieName
     val asyncRequest = async{
-      //await(compile(Post[Api].fullOpt(editor.code).call()))
-      val data = JsVal.obj(
-        "description" -> "Scala.jsFiddle gist",
-        "public" -> false,
-        "files" -> JsVal.obj(
-          "Main.scala" -> JsVal.obj(
-            "content" -> editor.code
-          )
-        )
-      ).toString()
       val requestOption = try {
         dom.console.log(s"Checking if we need to get Github auth token ${dom.document.cookie}")
         dom.console.log(cookies.toString)
@@ -220,7 +211,7 @@ function main() {
           setCookie(tokenCookieName, token)
         }
         cookies.get(tokenCookieName).map { token =>
-          val request = Ajax.apply("PATCH", s"https://api.github.com/gists/$gistId", data = data,
+          val request = Ajax.apply("PATCH", s"https://api.github.com/gists/$gistId", data = gistContent,
             timeout = 0,
             headers = Client.githubAuthHeaders,
             withCredentials = false,
@@ -282,7 +273,7 @@ object Client {
     dom.console.log("gistMain")
     Editor.initEditor
     val (gistId, fileName) = args.toSeq match{
-      case Nil => (fiddle.Shared.gistId, Some("Oscilloscope.scala"))
+      case Nil => (fiddle.Shared.gistId, Some(s"${Shared.mainClassName}.scala"))
       case Seq(g) => (g, None)
       case Seq(g, f) => (g, Some(f))
     }
