@@ -180,7 +180,7 @@ function main() {
 
   def gistContent = JsVal.obj(
     "description" -> "Scala.jsFiddle gist",
-    "public" -> true,
+    "public" -> false,
     "files" -> JsVal.obj(
       s"${Shared.mainClassName}.scala" -> JsVal.obj(
         "content" -> editor.code
