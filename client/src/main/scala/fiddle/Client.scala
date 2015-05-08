@@ -189,7 +189,7 @@ function main() {
   ).toString()
 
   def fork(): Unit = task*async{
-    val res = await(Ajax.post("https://api.github.com/gists", data = gistContent))
+    val res = await(Ajax.post("https://api.github.com/gists", data = gistContent, headers = Client.githubAuthHeaders))
     val result = JsVal.parse(res.responseText)
     Util.Form.get(s"$pathToBase/gist/${result("id").asString}/")
   }
