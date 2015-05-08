@@ -195,7 +195,7 @@ function main() {
         dom.console.log(cookies.toString)
         dom.console.log(parameters.toString)
         if(!cookies.contains(tokenCookieName) && !parameters.contains(tokenCookieName)) {
-          val callbackUrl = dom.location.href.replaceAll("/gist/[^/?]+/?", "/oauth_callback")
+          val callbackUrl = dom.location.href.replaceAll("/gist/[^/?]+", "") + "oauth_callback"
           val githubAuthUrl = s"https://github.com/login/oauth/authorize?client_id=${Shared.githubClientId}&scope=gist&redirect_uri=${js.URIUtils.encodeURIComponent(callbackUrl)}"
           dom.console.log(s"Redirecting to Github for OAuth $githubAuthUrl")
           dom.open(githubAuthUrl, "_blank")
