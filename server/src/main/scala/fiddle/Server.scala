@@ -191,6 +191,7 @@ object Server extends SimpleRoutingApp with Api {
       val gist = read[Gist](resp.entity.asString)
       val scalaCode = gist.files.head._2.content
       val theMd5 = md5(scalaCode)
+      println(s"Current MD5 of Gist $path is $theMd5")
       val fileName = s"${path}_$theMd5.js"
       if (new java.io.File(fileName).exists) {
         val source = scala.io.Source.fromFile(fileName)
