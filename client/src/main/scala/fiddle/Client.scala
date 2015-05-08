@@ -83,7 +83,7 @@ class Client(gistId: String, pathToBase: String = "."){
 function main() {
   var url = "https://experimental.camato.eu/apps-scaripped/gist/$gistId/compiled";
   eval(UrlFetchApp.fetch(url).getContentText());
-  ScalaJSExample().main();
+  AppsScarippedMain().main();
 }"""
       showJavascript(Future(("", Some(snippet))))
 

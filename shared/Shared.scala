@@ -22,7 +22,7 @@ object Shared{
     |}
   """.stripMargin
 
-  val gistId = "1d32e23cacb79abc2ec5"
+  val gistId = "80c073dd26792f5de7d8"
   val githubClientId = "6dd4bf6f1dcd622ddfc3"
   val tokenCookieName = "github_token"
   val url = "."
