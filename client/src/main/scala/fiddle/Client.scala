@@ -81,7 +81,11 @@ class Client(gistId: String, pathToBase: String = "."){
       val snippet = s"""
 // Copy and paste the following snippet into the AdWords script code input box
 function main() {
-  var url = "https://experimental.camato.eu/apps-scaripped/gist/$gistId/compiled";
+  // If your script requires additional rights, uncomment the matching lines below
+  // MccApp.accounts()
+  // MailApp.getRemainingDailyQuota()
+  // SpreadsheetApp.getActive()
+  var url = "https://experimental.camato.eu/apps-scaripped/gist/$gistId/compiled?date="+new Date();
   eval(UrlFetchApp.fetch(url).getContentText());
   ${Shared.mainClassName}().main();
 }"""
