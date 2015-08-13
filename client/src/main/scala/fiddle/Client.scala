@@ -308,8 +308,8 @@ object Client {
   }
 
   def cookies: Map[String, String] = {
-    dom.document.cookie.split(";").map { keyValueString =>
-      """([^=]+)(=(.*))?$""".r.findFirstMatchIn(keyValueString).map(m =>(m group 1, m group 3)).get match {
+    dom.document.cookie.split(";").flatMap { keyValueString =>
+      """([^=]+)(=(.*))?$""".r.findFirstMatchIn(keyValueString).map(m =>(m group 1, m group 3)).map {
         case (key, null) => (key.trim, "")
         case (key, value) => (key.trim, value.trim)
       }
