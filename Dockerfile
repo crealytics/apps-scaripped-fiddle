@@ -1,7 +1,10 @@
 FROM nightscape/docker-sbt
 
-COPY project/build.properties project/*.sbt project/*.scala /app/project/
 WORKDIR /app
+COPY project/build.properties project/*.sbt /app/project/
+RUN sbt "; update ; compile"
+
+COPY project/*.scala *.sbt /app/project/
 RUN sbt "; update ; compile"
 
 COPY . /app/
