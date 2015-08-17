@@ -11,6 +11,7 @@ import spray.revolver.RevolverPlugin._
 
 object Build extends sbt.Build{
   val theScalaVersion = "2.11.6"
+  val scalaJsVersion = "0.6.4"
   lazy val root = project.in(file("."))
     .aggregate(client, page, server, runtime)
     .settings(
@@ -90,8 +91,8 @@ object Build extends sbt.Build{
         "io.spray" %% "spray-httpx" % "1.3.1",
         "io.spray" %% "spray-json" % "1.3.1",
         "io.spray" %% "spray-routing" % "1.3.1",
-        "org.scala-js" % s"scalajs-compiler_${scalaVersion.value}" % "0.6.0",
-        "org.scala-js" %% "scalajs-tools" % "0.6.0",
+        "org.scala-js" % s"scalajs-compiler_${scalaVersion.value}" % scalaJsVersion,
+        "org.scala-js" %% "scalajs-tools" % scalaJsVersion,
         "org.scala-lang.modules" %% "scala-async" % "0.9.1" % "provided",
         "com.lihaoyi" %% "scalatags" % "0.4.5",
         "com.lihaoyi" %% "acyclic" % "0.1.2" % "provided",
