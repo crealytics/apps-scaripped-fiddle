@@ -1,13 +1,13 @@
-FROM nightscape/docker-sbt
+FROM 1science/sbt
 
 WORKDIR /app
-COPY project/build.properties project/*.sbt /app/project/
+ADD project/build.properties project/*.sbt /app/project/
 RUN sbt "; update ; compile"
 
-COPY project/*.scala *.sbt /app/project/
+ADD project/*.scala *.sbt /app/project/
 RUN sbt "; update ; compile"
 
-COPY . /app/
+ADD . /app/
 RUN sbt stage
 
 CMD ["/app/server/target/universal/stage/bin/server"]

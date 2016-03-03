@@ -4,8 +4,5 @@
 .settings
 bin
 .git
-target
-project/target
-project/project/target
+**/target/
 tmp
-Dockerfile
